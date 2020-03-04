@@ -1,0 +1,5 @@
+requests==2.21.0
+python-dateutil==2.8.0
+PyInquirer==1.0.3
+PyGithub==1.43.8
+python-dotenv==0.10.3
