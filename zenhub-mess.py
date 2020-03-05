@@ -64,75 +64,63 @@ def filter_by_milestone(issues, milestone):
     ]
 
 
-def filter_by_release(issues, release_title):
-    issues_with_releases = []
+def get_master_epics(issues):
+    master_epics = []
 
     for issue in issues:
-        if "releases" in issue and len(issue["releases"]) > 0:
-            for release in issue["releases"]:
-                if release["title"] == release_title:
-                    issues_with_releases.append(issue)
-    return issues_with_releases
+        if issue["is_epic"]:
+            for label in issue["labels"]:
+                if label["name"] == "Master Epic":
+                    issue["epics"] = []
+                    master_epics.append(issue)
+
+    return master_epics
 
 
-epics = get_epics(issues)
+def issues_as_dict(issues):
+    issues_dict = {}
+    for issue in issues:
+        issue["children"] = []
+        issue_key = ":".join(
+            [str(issue["repo_id"]), str(issue["issue_number"])]
+        )
+        issues_dict[issue_key] = issue
 
-master_epics = filter_by_release(epics, "Focal Fossa - 20.04")
+    return issues_dict
 
-for master_epic in master_epics:
-    master_epic["epics"] = []
 
-for epic in epics:
-    for parent_epic in epic["parent_epics"]:
-        repo_id = parent_epic["repo_id"]
-        issue_number = parent_epic["issue_number"]
+issues_dict = issues_as_dict(issues)
 
-        for master_epic in master_epics:
-            if (
-                master_epic["repo_id"] == repo_id
-                and master_epic["issue_number"] == issue_number
-            ):
-                master_epic["epics"].append(epic)
 
-issues_in_milestone = filter_by_milestone(
-    issues, "Iteration 20-08 (17 February - 28 February)"
+def add_to_parents(issues, issues_dict):
+    for issue in issues:
+        parents = issue["parent_epics"]
+        issue_key = ":".join(
+            [str(issue["repo_id"]), str(issue["issue_number"])]
+        )
+        for parent in parents:
+            key = ":".join(
+                [str(parent["repo_id"]), str(parent["issue_number"])]
+            )
+            if key in issues_dict:
+                issues_dict[key]["children"].append(issue)
+
+    return issues_dict
+
+
+issues_dict = add_to_parents(issues, issues_dict)
+
+issues_list = []
+
+for issue in issues_dict.items():
+    if issue[1]["is_epic"] or len(issue[1]["children"]) > 0:
+        issues_list.append(issue[1])
+
+print(
+    json.dumps(
+        filter_by_milestone(
+            issues_list, "Iteration 20-08 (17 February - 28 February)"
+        ),
+        indent=2,
+    )
 )
-
-epics_in_milestone = get_epics(issues_in_milestone)
-
-for epic in epics_in_milestone:
-    epic["issues"] = []
-    epic["estimate"] = 0
-    epic["completed"] = 0
-
-for issue in issues_in_milestone:
-    if not issue["is_epic"]:
-        for parent_epic in issue["parent_epics"]:
-            repo_id = parent_epic["repo_id"]
-            issue_number = parent_epic["issue_number"]
-
-            for epic in epics_in_milestone:
-                if (
-                    epic["repo_id"] == repo_id
-                    and epic["issue_number"] == issue_number
-                ):
-                    epic["issues"].append(issue)
-                    if issue["estimate"]:
-                        epic["estimate"] += issue["estimate"]
-                        if issue["state"] == "closed":
-                            epic["completed"] += issue["estimate"]
-
-
-# print(json.dumps(epics_in_milestone[3], indent=2))
-
-print(epics_in_milestone[0]["milestone"]["title"] + "\n")
-
-for epic in epics_in_milestone:
-    print(epic["title"])
-    for issue in epic["issues"]:
-        print("\t" + issue["title"] + " - " + str(issue["estimate"]))
-    print("\t" + str(round((epic["completed"] / epic["estimate"]) * 100)))
-    print("")
-
-print(json.dumps(master_epics[1], indent=2))
-# print(json.dumps(epics_in_milestone[0], indent=2))
