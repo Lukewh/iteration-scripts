@@ -179,4 +179,115 @@ def get_the_data_big_boy():
         return flask.jsonify(issues_list)
 
 
+def get_data(epic, iteration):
+    print(epic, iteration)
+
+
+@app.route("/new")
+def get_more_data_big_boy():
+    r = requests.get(URL, headers=headers)
+
+    issues = simpler_issues(r.json())
+
+    releases = []
+
+    the_data = []
+
+    for issue in issues:
+        for release in issue["releases"]:
+            if "state" in release and release["state"] == "open":
+                title = release["title"]
+                the_release = None
+                if not title in releases:
+                    releases.append(release["title"])
+                    the_release = {
+                        "title": release["title"],
+                        "master_epics": [],
+                    }
+                    the_data.append(the_release)
+                else:
+                    the_release = [
+                        release
+                        for release in the_data
+                        if release["title"] == title
+                    ][0]
+
+                the_release["master_epics"].append(issue)
+
+    milestones = []
+
+    releases = {}
+
+    for issue in issues:
+        release_title = None
+        master_epic = None
+        issue_key = str(issue["repo_id"]) + ":" + str(issue["issue_number"])
+
+        for release in issue["releases"]:
+            if "state" in release and release["state"] == "open":
+                release_title = release["title"]
+                if not release_title in releases:
+                    releases[release_title] = {"epic_keys": []}
+
+        if release_title:
+            for label in issue["labels"]:
+                if "name" in label and label["name"] == "Master Epic":
+                    master_epic = issue["title"]
+                    if not master_epic in releases[release_title]:
+                        releases[release_title][master_epic] = {
+                            "epic_key": issue_key,
+                            "milestones": {},
+                        }
+                        releases[release_title]["epic_keys"].append(issue_key)
+
+    for issue in issues:
+        master_epic = None
+        epic_keys = []
+        add_to = None
+        milestone = None
+
+        for epic in issue["parent_epics"]:
+            epic_keys.append(
+                str(epic["repo_id"]) + ":" + str(epic["issue_number"])
+            )
+
+        if (
+            "milestone" in issue
+            and issue["milestone"]
+            and "title" in issue["milestone"]
+        ):
+            milestone = issue["milestone"]["title"]
+
+        if len(epic_keys) > 0:
+            for epic_key in epic_keys:
+                for release in releases:
+                    for master_epic_title in releases[release]:
+                        if (
+                            "epic_key" in releases[release][master_epic_title]
+                            and releases[release][master_epic_title][
+                                "epic_key"
+                            ]
+                            == epic_key
+                        ):
+                            add_to = releases[release][master_epic_title]
+
+        if add_to and milestone and not milestone in add_to:
+            add_to["milestones"][milestone] = {"complete": 0}
+
+    # for release in releases:
+    #     if release != "epic_keys":
+    #         for master_epic in releases[release]:
+    #             if master_epic != "epic_key":
+    #                 if "milestones" in releases[release][master_epic]:
+    #                     epic_key = releases[release][master_epic]["epic_key"]
+    #                     for iteration in releases[release][master_epic][
+    #                         "milestones"
+    #                     ]:
+    #                         releases[release][master_epic][epic][
+    #                             iteration
+    #                         ] = get_data(epic_key, iteration)
+
+    return flask.jsonify(releases)
+
+
 app.run()
