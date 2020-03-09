@@ -25,6 +25,7 @@ search_term = " ".join([
     "repo:canonical-web-and-design/snap-squad",
     "repo:canonical-web-and-design/snapcraft.io",
     "repo:canonical-web-and-design/build.snapcraft.io",
+    "repo:canonical-web-and-design/charmhub.io",
     "milestone:\"" + milestone.title + "\""
 ])
 
@@ -106,7 +107,10 @@ for epic in epics:
                 output.append(" " + found_issue["github"].title)
                 print("".join(output) + " - " + str(points))
         print("\t-----------------------")
-        print("\t" + "Total: " + str(epic_total_points) + "\tComplete: " + str(epic_complete_points) + "\t" + str(round((epic_complete_points / epic_total_points) * 100)) + "%\n")
+        percentage = 0
+        if epic_complete_points > 0 and epic_total_points > 0:
+            percentage = round((epic_complete_points / epic_total_points) * 100)
+        print("\t" + "Total: " + str(epic_total_points) + "\tComplete: " + str(epic_complete_points) + "\t" + str(percentage) + "%\n")
     else:
         print("\t Not part of the iteration - for some reason\n")
                 
