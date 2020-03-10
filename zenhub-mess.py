@@ -46,8 +46,6 @@ headers = {
     "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
 }
 
-app = flask.Flask(__name__)
-
 
 def get_epics(issues):
     return [issue for issue in issues if issue["is_epic"]]
@@ -155,30 +153,6 @@ def simpler_issues(issues):
     return new_issues
 
 
-@app.route("/")
-def get_the_data_big_boy():
-    milestone = flask.request.args.get("milestone")
-
-    r = requests.get(URL, headers=headers)
-
-    issues = simpler_issues(r.json())
-
-    issues_dict = add_to_parents(issues, issues_as_dict(issues))
-
-    update_estimates(issues_dict)
-
-    issues_list = []
-
-    for issue in issues_dict.items():
-        if issue[1]["is_epic"] or len(issue[1]["children"]) > 0:
-            issues_list.append(issue[1])
-
-    if milestone:
-        return flask.jsonify(filter_by_milestone(issues_list, milestone))
-    else:
-        return flask.jsonify(issues_list)
-
-
 def get_complete(issues, master_epic_key, milestone):
     epics = []
 
@@ -217,8 +191,7 @@ def get_complete(issues, master_epic_key, milestone):
     return data
 
 
-@app.route("/new")
-def get_more_data_big_boy():
+def get_nested_data():
     r = requests.get(URL, headers=headers)
 
     issues = simpler_issues(r.json())
@@ -328,7 +301,68 @@ def get_more_data_big_boy():
                 "milestones"
             ]
 
-    return flask.jsonify(releases)
+    return releases
 
 
-app.run()
+if __name__ == "__main__":
+    import sys
+    args = sys.argv
+
+    is_flask = False
+    
+    for arg in args:
+        if arg == "--web":
+            is_flask = True
+
+    if is_flask:
+        app = flask.Flask(__name__)
+
+        @app.route("/original")
+        def get_the_data_big_boy():
+            milestone = flask.request.args.get("milestone")
+
+            r = requests.get(URL, headers=headers)
+
+            issues = simpler_issues(r.json())
+
+            issues_dict = add_to_parents(issues, issues_as_dict(issues))
+
+            update_estimates(issues_dict)
+
+            issues_list = []
+
+            for issue in issues_dict.items():
+                if issue[1]["is_epic"] or len(issue[1]["children"]) > 0:
+                    issues_list.append(issue[1])
+
+            if milestone:
+                return flask.jsonify(filter_by_milestone(issues_list, milestone))
+            else:
+                return flask.jsonify(issues_list)
+
+        @app.route("/")
+        def get_more_data_big_boy():
+            data = get_nested_data()
+            return flask.jsonify(data)
+ 
+        app.run()
+    else:
+        releases = get_nested_data()
+        
+        for release in releases:
+            print(release)
+            for master_epic in releases[release]:
+                estimate = 0
+                complete = 0
+                for iteration in releases[release][master_epic]:
+                    estimate += releases[release][master_epic][iteration]["estimate"]
+                    complete += releases[release][master_epic][iteration]["complete"]
+
+                percentage = 0
+                if estimate > 0 and complete > 0:
+                    percentage = round((complete / estimate) * 100)
+                print("\t" + master_epic + " - " + str(percentage) + "%")
+                for iteration in releases[release][master_epic]:
+                    print("\t\t" + iteration)
+                    print("\t\t\tEstimate: " + str(releases[release][master_epic][iteration]["estimate"]))
+                    print("\t\t\tComplete: " + str(releases[release][master_epic][iteration]["complete"]))
