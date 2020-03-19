@@ -1,4 +1,14 @@
 #!/usr/bin/python3
+
+'''
+in your i3block configuration to update every hour
+# Prs
+[open_prs]
+command=PATH_TO_THIS_SCRIPT/new-prs.py $button
+label=
+interval=3600
+'''
+
 from __future__ import print_function, unicode_literals
 import os
 import json
