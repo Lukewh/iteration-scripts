@@ -155,4 +155,13 @@ if VERBOSE:
 percentage_points = (complete_points / total_points) * 100
 if VERBOSE:
     print(milestone.title)
-print("Total: " + str(total_points) + "\tComplete: " + str(complete_points) + "\t" + str(round(percentage_points)) + "%")
+    print("Total: " + str(total_points) + "\tComplete: " + str(complete_points) + "\t" + str(round(percentage_points)) + "%")
+else:
+    print("".join([
+        str(complete_points),
+        "/",
+        str(total_points),
+        " ",
+        str(round(percentage_points)),
+        "%"
+    ]))
