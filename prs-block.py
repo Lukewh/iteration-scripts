@@ -43,7 +43,13 @@ if len(sys.argv) == 2:
 
 gh_issues = g.search_issues(search_term)
 
-count = gh_issues.totalCount
+unmerged = []
+
+for issue in gh_issues:
+    if issue.state == "open":
+        unmerged.append(issue)
+
+count = len(unmerged)
 
 count_str = ""
 
