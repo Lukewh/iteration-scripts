@@ -1,6 +1,13 @@
+#!/usr/bin/python3
+
 from __future__ import print_function, unicode_literals
 import os
 import json
+import sys
+
+VERBOSE = True
+if len(sys.argv) == 2:
+    VERBOSE = False
 
 from github import Github
 
@@ -12,7 +19,8 @@ ZENHUB_ACCESS_TOKEN = os.getenv("ZENHUB_ACCESS_TOKEN")
 g = Github(GITHUB_ACCESS_TOKEN)
 z = Zenhub(ZENHUB_ACCESS_TOKEN)
 
-print("Getting data...")
+if VERBOSE:
+    print("Getting data...")
 
 repo = g.get_organization("canonical-web-and-design").get_repo("snap-squad")
 
@@ -79,7 +87,8 @@ total_points = 0
 complete_points = 0
 
 for epic in epics:
-    print(epic["github"].title + " - " + epic["github"].html_url)
+    if VERBOSE:
+        print(epic["github"].title + " - " + epic["github"].html_url)
     epic_total_points = 0
     epic_complete_points = 0
     if "issues" in epic["zenhub"]:
@@ -105,17 +114,22 @@ for epic in epics:
                 total_points = total_points + points
                 epic_total_points = epic_total_points + points
                 output.append(" " + found_issue["github"].title)
-                print("".join(output) + " - " + str(points))
-        print("\t-----------------------")
+                if VERBOSE:
+                    print("".join(output) + " - " + str(points))
+        if VERBOSE:
+            print("\t-----------------------")
         percentage = 0
         if epic_complete_points > 0 and epic_total_points > 0:
             percentage = round((epic_complete_points / epic_total_points) * 100)
-        print("\t" + "Total: " + str(epic_total_points) + "\tComplete: " + str(epic_complete_points) + "\t" + str(percentage) + "%\n")
+        if VERBOSE:
+            print("\t" + "Total: " + str(epic_total_points) + "\tComplete: " + str(epic_complete_points) + "\t" + str(percentage) + "%\n")
     else:
-        print("\t Not part of the iteration - for some reason\n")
+        if VERBOSE:
+            print("\t Not part of the iteration - for some reason\n")
                 
 if len(orphan_issues) > 0:
-    print("Orphan issues")
+    if VERBOSE:
+        print("Orphan issues")
     for issue in orphan_issues:
         output = ["\t"]
         points = 0
@@ -131,11 +145,14 @@ if len(orphan_issues) > 0:
             
         output.append(" " + issue["github"].title + " - " + str(issue["zenhub"]["estimate"]["value"]))
 
-        print("".join(output))
-        print("\t\t" + issue["github"].html_url)
+        if VERBOSE:
+            print("".join(output))
+            print("\t\t" + issue["github"].html_url)
 
-print("")
-print("=======================")
+if VERBOSE:
+    print("")
+    print("=======================")
 percentage_points = (complete_points / total_points) * 100
-print(milestone.title)
+if VERBOSE:
+    print(milestone.title)
 print("Total: " + str(total_points) + "\tComplete: " + str(complete_points) + "\t" + str(round(percentage_points)) + "%")
