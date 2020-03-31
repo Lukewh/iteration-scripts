@@ -1,9 +1,12 @@
-#!/usr/bin/python3
+#!/home/luke/.venv/iteration-scripts/bin/python
 
 from __future__ import print_function, unicode_literals
 import os
 import json
 import sys
+
+from dotenv import load_dotenv
+load_dotenv()
 
 VERBOSE = True
 if len(sys.argv) == 2:
