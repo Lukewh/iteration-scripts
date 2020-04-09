@@ -6,6 +6,7 @@ import json
 import sys
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 VERBOSE = True
@@ -31,31 +32,40 @@ milestones = repo.get_milestones()
 
 milestone = milestones[0]
 
-search_term = " ".join([
-    "type:issue",
-    "repo:canonical-web-and-design/snap-squad",
-    "repo:canonical-web-and-design/snapcraft.io",
-    "repo:canonical-web-and-design/build.snapcraft.io",
-    "repo:canonical-web-and-design/charmhub.io",
-    "milestone:\"" + milestone.title + "\""
-])
+search_term = " ".join(
+    [
+        "type:issue",
+        "repo:canonical-web-and-design/snap-squad",
+        "repo:canonical-web-and-design/snapcraft.io",
+        "repo:canonical-web-and-design/snapcraft-poller-script",
+        "repo:canonical-web-and-design/build.snapcraft.io",
+        "repo:canonical-web-and-design/charmhub.io",
+        'milestone:"' + milestone.title + '"',
+    ]
+)
 
 gh_issues = g.search_issues(search_term)
 
-maintenance_term = " ".join([
-    "label:\"Master Epic\"",
-    "repo:canonical-web-and-design/snap-squad",
-    "Maintenance"
-])
+maintenance_term = " ".join(
+    [
+        'label:"Master Epic"',
+        "repo:canonical-web-and-design/snap-squad",
+        "Maintenance",
+    ]
+)
 
 maintenance_issue = g.search_issues(maintenance_term)[0]
-maintenance_epic = z.get_epic_data(repo_id=maintenance_issue.repository.id, epic_id=maintenance_issue.number)
+maintenance_epic = z.get_epic_data(
+    repo_id=maintenance_issue.repository.id, epic_id=maintenance_issue.number
+)
 
 epics = [{"github": maintenance_issue, "zenhub": maintenance_epic}]
 issues = []
 
 for issue in gh_issues:
-    zenhub_details = z.get_issue_data(repo_id=issue.repository.id, issue_number=issue.number)
+    zenhub_details = z.get_issue_data(
+        repo_id=issue.repository.id, issue_number=issue.number
+    )
     if zenhub_details["is_epic"]:
         epic_details = z.get_epic_data(repo_id=repo.id, epic_id=issue.number)
         epics.append({"github": issue, "zenhub": epic_details})
@@ -82,7 +92,7 @@ for issue in issues:
 
         if len(issue_matches) > 0:
             is_orphan = False
-    
+
     if is_orphan:
         orphan_issues.append(issue)
 
@@ -123,13 +133,24 @@ for epic in epics:
             print("\t-----------------------")
         percentage = 0
         if epic_complete_points > 0 and epic_total_points > 0:
-            percentage = round((epic_complete_points / epic_total_points) * 100)
+            percentage = round(
+                (epic_complete_points / epic_total_points) * 100
+            )
         if VERBOSE:
-            print("\t" + "Total: " + str(epic_total_points) + "\tComplete: " + str(epic_complete_points) + "\t" + str(percentage) + "%\n")
+            print(
+                "\t"
+                + "Total: "
+                + str(epic_total_points)
+                + "\tComplete: "
+                + str(epic_complete_points)
+                + "\t"
+                + str(percentage)
+                + "%\n"
+            )
     else:
         if VERBOSE:
             print("\t Not part of the iteration - for some reason\n")
-                
+
 if len(orphan_issues) > 0:
     if VERBOSE:
         print("Orphan issues")
@@ -139,14 +160,19 @@ if len(orphan_issues) > 0:
         if "estimate" in issue["zenhub"]:
             points = issue["zenhub"]["estimate"]["value"]
             total_points = total_points + points
-            
+
         if issue["github"].state == "closed":
             output.append("◼")
             complete_points = complete_points + points
         else:
             output.append("◻")
-            
-        output.append(" " + issue["github"].title + " - " + str(issue["zenhub"]["estimate"]["value"]))
+
+        output.append(
+            " "
+            + issue["github"].title
+            + " - "
+            + str(issue["zenhub"]["estimate"]["value"])
+        )
 
         if VERBOSE:
             print("".join(output))
@@ -158,13 +184,25 @@ if VERBOSE:
 percentage_points = (complete_points / total_points) * 100
 if VERBOSE:
     print(milestone.title)
-    print("Total: " + str(total_points) + "\tComplete: " + str(complete_points) + "\t" + str(round(percentage_points)) + "%")
+    print(
+        "Total: "
+        + str(total_points)
+        + "\tComplete: "
+        + str(complete_points)
+        + "\t"
+        + str(round(percentage_points))
+        + "%"
+    )
 else:
-    print("".join([
-        str(complete_points),
-        "/",
-        str(total_points),
-        " ",
-        str(round(percentage_points)),
-        "%"
-    ]))
+    print(
+        "".join(
+            [
+                str(complete_points),
+                "/",
+                str(total_points),
+                " ",
+                str(round(percentage_points)),
+                "%",
+            ]
+        )
+    )
